@@ -1,0 +1,60 @@
+name: jpm changeset
+description: Keep a "Version packages" pull request for a jpm project's changesets, and publish when it is merged
+author: java-package-manager
+branding:
+  icon: git-pull-request
+  color: blue
+
+inputs:
+  publish:
+    description: "After the version pull request is merged (no changesets left): run `jpm changeset publish` and push the tags"
+    required: false
+    default: "false"
+  publish-args:
+    description: "Arguments for `jpm changeset publish`, passed on to jpm publish (such as a repository name)"
+    required: false
+    default: ""
+  title:
+    description: The title of the version pull request, and the message of its commit
+    required: false
+    default: Version packages
+  branch:
+    description: "The branch of the version pull request (default: changeset-release/<the branch the workflow runs on>)"
+    required: false
+    default: ""
+  working-directory:
+    description: The jpm project's folder
+    required: false
+    default: "."
+  github-token:
+    description: The token that pushes and opens the pull request; pull requests opened with the default token do not start workflows
+    required: false
+    default: ${{ github.token }}
+  dry-run:
+    description: "Version on the branch and commit, but push nothing and open no pull request (for testing)"
+    required: false
+    default: "false"
+
+outputs:
+  pull-request:
+    description: The number of the version pull request, when one is open
+    value: ${{ steps.run.outputs.pull-request }}
+  published:
+    description: "\"true\" when this run published"
+    value: ${{ steps.run.outputs.published }}
+
+runs:
+  using: composite
+  steps:
+    - name: Version or publish
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        INPUT_PUBLISH: ${{ inputs.publish }}
+        INPUT_PUBLISH_ARGS: ${{ inputs.publish-args }}
+        INPUT_TITLE: ${{ inputs.title }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_DRY_RUN: ${{ inputs.dry-run }}
+      run: bash "$GITHUB_ACTION_PATH/run.sh"
