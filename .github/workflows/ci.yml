@@ -47,7 +47,7 @@ jobs:
         with:
           path: action
       - uses: java-package-manager/setup-jpm@v1
-      - name: A project whose version has no tag yet
+      - name: A project whose version has no tag yet, with only an empty changeset
         run: |
           set -eux
           mkdir -p sample/src/app && cd sample
@@ -56,6 +56,7 @@ jobs:
           printf '.cache/\ndist/\n' > .gitignore
           printf '# app\n\n## 1.1.0\n\n### Minor changes\n\n- Add a greeting.\n' > CHANGELOG.md
           jpm install
+          jpm changeset add --empty -m "Only CI changed."
           git init -q -b main
           git -c user.name=ci -c user.email=ci@example.com add -A
           git -c user.name=ci -c user.email=ci@example.com commit -qm init
@@ -64,7 +65,7 @@ jobs:
         with:
           working-directory: sample
           dry-run: "true"
-      - name: Without jpm publish installed, the version is only tagged, with its changelog entry
+      - name: No version pull request for an empty changeset; without jpm publish, the version is only tagged, with its changelog entry
         working-directory: sample
         env:
           TAGS: ${{ steps.release.outputs.tags }}
@@ -73,6 +74,10 @@ jobs:
           set -eux
           test "$TAGS" = 1.1.0
           test "$PUBLISHED" = true
+          test "$(git branch --show-current)" = main
+          ! git rev-parse --verify --quiet changeset-release/main
+          test -n "$(ls .changeset/*.md)"
+          test -z "$(git status --porcelain)"
           test "$(git tag -l 1.1.0 --format='%(contents:subject)')" = "app 1.1.0"
           git tag -l 1.1.0 --format='%(contents:body)' | grep -q '^### Minor changes$'
           git tag -l 1.1.0 --format='%(contents:body)' | grep -q 'Add a greeting.'
