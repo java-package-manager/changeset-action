@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Keeps a "Version packages" pull request with the changes `jpm changeset version` makes; once it is merged
-# and no changesets are left, publishes with `jpm changeset publish` (when asked) and pushes the tags.
+# and no changesets are left, tags what has no tag yet with `jpm changeset publish` (--tag-only unless asked to
+# publish), pushes the new tags and creates a GitHub release for each.
 set -euo pipefail
 
 base="$(git rev-parse --abbrev-ref HEAD)"
@@ -24,16 +25,38 @@ if [ -z "$(git status --porcelain)" ]; then
   git checkout -q "$base"
   git branch -q -D "$branch"
   echo "No changesets to release."
-  echo "published=false" >> "$out"
   if [ "${INPUT_PUBLISH:-false}" = "true" ]; then
-    # shellcheck disable=SC2086
-    jpm changeset publish ${INPUT_PUBLISH_ARGS:-}
-    if [ "$dry" = "true" ]; then
-      echo "Dry run: the tags are not pushed."
-    else
-      git push --tags
-    fi
-    echo "published=true" >> "$out"
+    # shellcheck disable=SC2206
+    args=(${INPUT_PUBLISH_ARGS:-})
+  else
+    args=(--tag-only)
+  fi
+  before="$(git tag -l | sort)"
+  jpm changeset publish "${args[@]}"
+  tags="$(comm -13 <(printf '%s\n' "$before") <(git tag -l | sort) | tr '\n' ' ' | sed 's/ *$//')"
+  echo "tags=$tags" >> "$out"
+  if [ -z "$tags" ]; then
+    echo "published=false" >> "$out"
+    exit 0
+  fi
+  echo "published=true" >> "$out"
+  if [ "$dry" = "true" ]; then
+    echo "Dry run: tagged $tags; nothing is pushed and no release is created."
+    exit 0
+  fi
+  refs=()
+  for t in $tags; do refs+=("refs/tags/$t"); done
+  git push -q origin "${refs[@]}"
+  echo "Pushed $tags"
+  if [ "${INPUT_GITHUB_RELEASE:-true}" = "true" ]; then
+    for t in $tags; do
+      name="$(git tag -l "$t" --format='%(contents:subject)')"
+      notes="$(git tag -l "$t" --format='%(contents:body)')"
+      pre=()
+      case "${t##*@}" in *-*) pre=(--prerelease) ;; esac
+      gh release create "$t" --verify-tag --title "${name:-$t}" --notes "${notes:-$t}" "${pre[@]}" >/dev/null
+      echo "Released $t"
+    done
   fi
   exit 0
 fi

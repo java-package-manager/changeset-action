@@ -1,5 +1,5 @@
 name: jpm changeset
-description: Keep a "Version packages" pull request for a jpm project's changesets, and publish when it is merged
+description: Keep a "Version packages" pull request for a jpm project's changesets, and tag and release when it is merged
 author: java-package-manager
 branding:
   icon: git-pull-request
@@ -7,9 +7,13 @@ branding:
 
 inputs:
   publish:
-    description: "After the version pull request is merged (no changesets left): run `jpm changeset publish` and push the tags"
+    description: "Also publish with jpm publish when releasing; otherwise a release only tags (`jpm changeset publish --tag-only`)"
     required: false
     default: "false"
+  github-release:
+    description: "Create a GitHub release for each new tag, with its changelog entry as the notes"
+    required: false
+    default: "true"
   publish-args:
     description: "Arguments for `jpm changeset publish`, passed on to jpm publish (such as a repository name)"
     required: false
@@ -40,8 +44,11 @@ outputs:
     description: The number of the version pull request, when one is open
     value: ${{ steps.run.outputs.pull-request }}
   published:
-    description: "\"true\" when this run published"
+    description: "\"true\" when this run released (created tags)"
     value: ${{ steps.run.outputs.published }}
+  tags:
+    description: The tags this run created, separated by spaces
+    value: ${{ steps.run.outputs.tags }}
 
 runs:
   using: composite
@@ -54,6 +61,7 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         INPUT_PUBLISH: ${{ inputs.publish }}
         INPUT_PUBLISH_ARGS: ${{ inputs.publish-args }}
+        INPUT_GITHUB_RELEASE: ${{ inputs.github-release }}
         INPUT_TITLE: ${{ inputs.title }}
         INPUT_BRANCH: ${{ inputs.branch }}
         INPUT_DRY_RUN: ${{ inputs.dry-run }}
