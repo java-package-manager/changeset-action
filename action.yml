@@ -7,15 +7,14 @@ branding:
 
 inputs:
   publish:
-    description: "Also publish with jpm publish when releasing; otherwise a release only tags (`jpm changeset publish --tag-only`)"
+    description: "Publish with jpm publish before tagging: true (fails when jpm publish is not installed), false (only tag), or left out (publish when jpm publish is installed)"
     required: false
-    default: "false"
   github-release:
     description: "Create a GitHub release for each new tag, with its changelog entry as the notes"
     required: false
     default: "true"
   publish-args:
-    description: "Arguments for `jpm changeset publish`, passed on to jpm publish (such as a repository name)"
+    description: "When publishing: arguments for `jpm changeset publish`, passed on to jpm publish (such as a repository name)"
     required: false
     default: ""
   title:

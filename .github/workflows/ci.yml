@@ -64,7 +64,7 @@ jobs:
         with:
           working-directory: sample
           dry-run: "true"
-      - name: The version is tagged, with its changelog entry, without jpm publish
+      - name: Without jpm publish installed, the version is only tagged, with its changelog entry
         working-directory: sample
         env:
           TAGS: ${{ steps.release.outputs.tags }}
@@ -76,6 +76,22 @@ jobs:
           test "$(git tag -l 1.1.0 --format='%(contents:subject)')" = "app 1.1.0"
           git tag -l 1.1.0 --format='%(contents:body)' | grep -q '^### Minor changes$'
           git tag -l 1.1.0 --format='%(contents:body)' | grep -q 'Add a greeting.'
+          git tag -d 1.1.0
+      - uses: ./action
+        id: required
+        continue-on-error: true
+        with:
+          working-directory: sample
+          dry-run: "true"
+          publish: "true"
+      - name: publish true fails without jpm publish, and tags nothing
+        working-directory: sample
+        env:
+          OUTCOME: ${{ steps.required.outcome }}
+        run: |
+          set -eux
+          test "$OUTCOME" = failure
+          test -z "$(git tag -l 1.1.0)"
 
   # A push to main whose VERSION has no tag yet is released, once every test passes: a tag v<version>
   # (v1.2.3), a GitHub release, and the major tag (v1) moved to it, so `changeset-action@v1` always gets the newest v1.x.y.
