@@ -17,7 +17,7 @@ jobs:
         run: |
           set -eux
           mkdir -p sample/src/app && cd sample
-          printf '{\n  "name": "app",\n  "version": "1.0.0",\n  "extensions": { "github:java-package-manager/jpm-changeset": "^0.2.0" }\n}\n' > project.jsonc
+          printf '{\n  "name": "app",\n  "version": "1.0.0",\n  "extensions": { "github:java-package-manager/jpm-changeset": "^0.3.1" }\n}\n' > project.jsonc
           printf 'package app; public class A {}\n' > src/app/A.java
           printf '.cache/\ndist/\n' > .gitignore
           jpm install
@@ -39,12 +39,66 @@ jobs:
           git show changeset-release/main:CHANGELOG.md | grep -q 'Add a greeting.'
           test -z "$(git ls-tree changeset-release/main .changeset/ | grep '\.md$' || true)"
 
+  release-dry-run:
+    name: release dry run on a sample project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: action
+      - uses: java-package-manager/setup-jpm@v1
+      - name: A project whose version has no tag yet
+        run: |
+          set -eux
+          mkdir -p sample/src/app && cd sample
+          printf '{\n  "name": "app",\n  "group": "com.example",\n  "version": "1.1.0",\n  "extensions": { "github:java-package-manager/jpm-changeset": "^0.3.1" }\n}\n' > project.jsonc
+          printf 'package app; public class A {}\n' > src/app/A.java
+          printf '.cache/\ndist/\n' > .gitignore
+          printf '# app\n\n## 1.1.0\n\n### Minor changes\n\n- Add a greeting.\n' > CHANGELOG.md
+          jpm install
+          git init -q -b main
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -qm init
+      - uses: ./action
+        id: release
+        with:
+          working-directory: sample
+          dry-run: "true"
+      - name: Without jpm publish installed, the version is only tagged, with its changelog entry
+        working-directory: sample
+        env:
+          TAGS: ${{ steps.release.outputs.tags }}
+          PUBLISHED: ${{ steps.release.outputs.published }}
+        run: |
+          set -eux
+          test "$TAGS" = 1.1.0
+          test "$PUBLISHED" = true
+          test "$(git tag -l 1.1.0 --format='%(contents:subject)')" = "app 1.1.0"
+          git tag -l 1.1.0 --format='%(contents:body)' | grep -q '^### Minor changes$'
+          git tag -l 1.1.0 --format='%(contents:body)' | grep -q 'Add a greeting.'
+          git tag -d 1.1.0
+      - uses: ./action
+        id: required
+        continue-on-error: true
+        with:
+          working-directory: sample
+          dry-run: "true"
+          publish: "true"
+      - name: publish true fails without jpm publish, and tags nothing
+        working-directory: sample
+        env:
+          OUTCOME: ${{ steps.required.outcome }}
+        run: |
+          set -eux
+          test "$OUTCOME" = failure
+          test -z "$(git tag -l 1.1.0)"
+
   # A push to main whose VERSION has no tag yet is released, once every test passes: a tag v<version>
   # (v1.2.3), a GitHub release, and the major tag (v1) moved to it, so `changeset-action@v1` always gets the newest v1.x.y.
   release:
     name: release
     if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    needs: [dry-run]
+    needs: [dry-run, release-dry-run]
     runs-on: ubuntu-latest
     permissions:
       contents: write
