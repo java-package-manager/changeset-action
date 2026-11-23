@@ -22,10 +22,16 @@ plan="$(jpm changeset status 2>&1 || true)"
 git checkout -q -B "$branch"
 trap 'git checkout -q "$base" 2>/dev/null || true' EXIT
 jpm changeset version
-if [ -z "$(git status --porcelain)" ]; then
+if [ -z "$(git status --porcelain -- . ':(exclude).changeset')" ]; then
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "The pending changesets release nothing (they are empty): no version pull request; they stay until a release."
+    git reset -q --hard
+    git clean -fdq -- .changeset
+  else
+    echo "No changesets to release."
+  fi
   git checkout -q "$base"
   git branch -q -D "$branch"
-  echo "No changesets to release."
   if help="$(jpm publish --help 2>&1)"; then
     installed=true
   elif printf '%s' "$help" | grep -q 'Unknown command "publish"'; then

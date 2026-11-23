@@ -3,7 +3,8 @@
 A GitHub Action for [jpm-changeset](https://github.com/java-package-manager/jpm-changeset), like
 [changesets/action](https://github.com/changesets/action) for npm. On every push to main it keeps a
 "Version packages" pull request with what `jpm changeset version` changes: the bumped versions, the
-changelogs and the deleted changesets. Merging that pull request releases: the action tags every module
+changelogs and the deleted changesets. Empty changesets (`jpm changeset add --empty`) release nothing, so
+when they are all that is pending there is no pull request; they are deleted with the next release. Merging that pull request releases: the action tags every module
 whose version has no tag yet (`jpm changeset publish`), pushes the new tags and creates a GitHub
 release for each, with the module's changelog entry as its notes; a prerelease version (`1.4.0-beta.0`) becomes
 a GitHub prerelease. A release needs no jpm publish: it is the tag and the GitHub release. When
