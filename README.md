@@ -56,7 +56,7 @@ publish.
 | `title` | `Version packages` | The pull request's title and its commit's message |
 | `branch` | `changeset-release/<branch>` | The pull request's branch |
 | `working-directory` | `.` | The jpm project's folder |
-| `github-token` | `github.token` | The token that pushes and opens the pull request. GitHub starts no workflows for a pull request opened with the default token; use a personal access token or a GitHub App token when CI should run on it |
+| `github-token` | `github.token` | The token that pushes (the version branch and the tags) and opens the pull request. GitHub starts no workflows for a pull request opened or pushed with the default token; use a personal access token or a GitHub App token when CI should run on it. The action pushes with it, not with the credentials `actions/checkout` stored, so checkout needs no `token` |
 | `dry-run` | `false` | Version and commit on the branch, but push nothing and open no pull request |
 
 Outputs: `pull-request` (its number, when one is open), `published` (`"true"` when this run released) and

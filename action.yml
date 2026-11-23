@@ -30,7 +30,7 @@ inputs:
     required: false
     default: "."
   github-token:
-    description: The token that pushes and opens the pull request; pull requests opened with the default token do not start workflows
+    description: "The token that pushes (instead of the credentials actions/checkout stored) and opens the pull request; pull requests opened or pushed with the default token do not start workflows"
     required: false
     default: ${{ github.token }}
   dry-run:

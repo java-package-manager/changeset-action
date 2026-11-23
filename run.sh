@@ -18,6 +18,21 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "::error::not in a
 git config user.name >/dev/null || git config user.name "github-actions[bot]"
 git config user.email >/dev/null || git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+# pushes with github-token, not with the credentials actions/checkout stored: GitHub starts no workflows for a push
+# made with github.token, so CI would not run on the version pull request although github-token is another token.
+# An empty http.<server>/.extraheader drops the header checkout set; the next one sends github-token.
+push() {
+  if [ -n "${GH_TOKEN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+    local server="${GITHUB_SERVER_URL:-https://github.com}"
+    local auth
+    auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+    echo "::add-mask::$auth"
+    git -c "http.$server/.extraheader=" -c "http.$server/.extraheader=AUTHORIZATION: basic $auth" push "$@"
+  else
+    git push "$@"
+  fi
+}
+
 plan="$(jpm changeset status 2>&1 || true)"
 git checkout -q -B "$branch"
 trap 'git checkout -q "$base" 2>/dev/null || true' EXIT
@@ -78,7 +93,7 @@ if [ -z "$(git status --porcelain -- . ':(exclude).changeset')" ]; then
   fi
   refs=()
   for t in $tags; do refs+=("refs/tags/$t"); done
-  git push -q origin "${refs[@]}"
+  push -q origin "${refs[@]}"
   echo "Pushed $tags"
   if [ "${INPUT_GITHUB_RELEASE:-true}" = "true" ]; then
     for t in $tags; do
@@ -109,7 +124,7 @@ if [ "$dry" = "true" ]; then
   exit 0
 fi
 
-git push -q --force origin "$branch"
+push -q --force origin "$branch"
 number="$(gh pr list --head "$branch" --base "$base" --state open --json number --jq '.[0].number // empty')"
 if [ -n "$number" ]; then
   gh pr edit "$number" --title "$title" --body "$body" >/dev/null
