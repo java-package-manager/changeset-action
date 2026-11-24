@@ -49,7 +49,7 @@ if [ -z "$(git status --porcelain -- . ':(exclude).changeset')" ]; then
   git branch -q -D "$branch"
   if help="$(jpm publish --help 2>&1)"; then
     installed=true
-  elif printf '%s' "$help" | grep -q 'Unknown command "publish"'; then
+  elif printf '%s' "$help" | grep -Eq 'Unknown command "publish"|which is not installed'; then
     installed=false
   else
     echo "::error::could not tell whether jpm publish is installed: $help"
