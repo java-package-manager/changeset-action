@@ -2,7 +2,7 @@
 
 A GitHub Action for [jpm-changeset](https://github.com/java-package-manager/jpm-changeset), like
 [changesets/action](https://github.com/changesets/action) for npm. On every push to main it keeps a
-"Version packages" pull request with what `jpm changeset version` changes: the bumped versions, the
+"Version <version>" pull request with what `jpm changeset version` changes: the bumped versions, the
 changelogs and the deleted changesets. Empty changesets (`jpm changeset add --empty`) release nothing, so
 when they are all that is pending there is no pull request; they are deleted with the next release. Merging that pull request releases: the action tags every module
 whose version has no tag yet (`jpm changeset publish`), pushes the new tags and creates a GitHub
@@ -53,7 +53,7 @@ publish.
 | `publish` | (detected) | Publish with jpm publish before tagging. Left out: when jpm publish is installed. `true`: always, and fail when it is not installed. `false`: never, only tag |
 | `publish-args` | | When publishing: arguments for `jpm changeset publish`, which passes them to `jpm publish` (such as a repository name) |
 | `github-release` | `true` | Create a GitHub release for each new tag |
-| `title` | `Version packages` | The pull request's title and its commit's message |
+| `title` | `Version <version>` | The pull request's title and its commit's message |
 | `branch` | `changeset-release/<branch>` | The pull request's branch |
 | `working-directory` | `.` | The jpm project's folder |
 | `github-token` | `github.token` | The token that pushes (the version branch and the tags) and opens the pull request. GitHub starts no workflows for a pull request opened or pushed with the default token; use a personal access token or a GitHub App token when CI should run on it. The action pushes with it, not with the credentials `actions/checkout` stored, so checkout needs no `token` |

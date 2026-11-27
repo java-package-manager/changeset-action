@@ -1,5 +1,5 @@
 name: jpm changeset
-description: Keep a "Version packages" pull request for a jpm project's changesets, and tag and release when it is merged
+description: Keep a "Version <version>" pull request for a jpm project's changesets, and tag and release when it is merged
 author: java-package-manager
 branding:
   icon: git-pull-request
@@ -18,9 +18,9 @@ inputs:
     required: false
     default: ""
   title:
-    description: The title of the version pull request, and the message of its commit
+    description: "The title of the version pull request, and the message of its commit (default: Version <the new version>)"
     required: false
-    default: Version packages
+    default: ""
   branch:
     description: "The branch of the version pull request (default: changeset-release/<the branch the workflow runs on>)"
     required: false

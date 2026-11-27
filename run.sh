@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Keeps a "Version packages" pull request with the changes `jpm changeset version` makes; once it is merged
+# Keeps a "Version <version>" pull request with the changes `jpm changeset version` makes; once it is merged
 # and no changesets are left, tags what has no tag yet with `jpm changeset publish`, pushes the new tags and
 # creates a GitHub release for each. It publishes with jpm publish first when `publish` is true, or when it is
 # left out and jpm publish is installed; otherwise it only tags (--tag-only).
@@ -8,7 +8,6 @@ set -euo pipefail
 base="$(git rev-parse --abbrev-ref HEAD)"
 if [ "$base" = HEAD ]; then base="${GITHUB_REF_NAME:?the checkout has no branch; run on a push to a branch}"; fi
 branch="${INPUT_BRANCH:-changeset-release/$base}"
-title="${INPUT_TITLE:-Version packages}"
 dry="${INPUT_DRY_RUN:-false}"
 out="${GITHUB_OUTPUT:-/dev/null}"
 
@@ -108,6 +107,10 @@ if [ -z "$(git status --porcelain -- . ':(exclude).changeset')" ]; then
   exit 0
 fi
 
+# the default title names the version `jpm changeset version` wrote (the first "version" in project.jsonc)
+version="$(sed -nE 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' project.jsonc 2>/dev/null | head -n1)"
+title="${INPUT_TITLE:-${version:+Version $version}}"
+title="${title:-Version packages}"
 git add -A
 git commit -q -m "$title"
 body="This pull request was opened by [changeset-action](https://github.com/java-package-manager/changeset-action). Merging it releases:
