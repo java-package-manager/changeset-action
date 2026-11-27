@@ -82,20 +82,22 @@ jobs:
           git tag -l 1.1.0 --format='%(contents:body)' | grep -q '^### Minor changes$'
           git tag -l 1.1.0 --format='%(contents:body)' | grep -q 'Add a greeting.'
           git tag -d 1.1.0
-      - uses: ./action
-        id: required
-        continue-on-error: true
-        with:
-          working-directory: sample
-          dry-run: "true"
-          publish: "true"
+      # run.sh directly, not through the action: the expected failure would otherwise show its ::error:: lines and
+      # exit code as annotations on a passing run
       - name: publish true fails without jpm publish, and tags nothing
         working-directory: sample
         env:
-          OUTCOME: ${{ steps.required.outcome }}
+          INPUT_PUBLISH: "true"
+          INPUT_DRY_RUN: "true"
         run: |
-          set -eux
-          test "$OUTCOME" = failure
+          set -eu
+          if out="$(bash ../action/run.sh 2>&1)"; then
+            printf '%s\n' "$out"
+            echo "expected run.sh to fail with publish true and no jpm publish"
+            exit 1
+          fi
+          printf '%s\n' "$out" | sed 's/^::error::/(expected) /'
+          printf '%s\n' "$out" | grep -q 'publish is true, but jpm publish is not installed'
           test -z "$(git tag -l 1.1.0)"
 
   # A push to main whose VERSION has no tag yet is released, once every test passes: a tag v<version>
